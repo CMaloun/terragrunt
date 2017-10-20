@@ -15,24 +15,30 @@ variable "vm_admin_username" {}
 variable "vm_size" { default = "Standard_DS1_v2" }
 variable "vm_image_uri" {}
 variable "vm_count" {}
+variable "puppet_environment" {}
+variable "domain_name" {}
+variable "puppetmaster_ip_address" {}
+variable "puppetmaster_hostname" {}
+variable "server_role" {}
 
 
 resource "azurerm_availability_set" "web-as" {
   name                = "web-as"
   location            = "${var.location}"
   resource_group_name = "${var.resource_group_name}"
+  managed = true
 }
 
-resource "azurerm_storage_account" "sto-web-vm" {
-  name                     = "${var.storage_account_name}"  #It would be better to have a unique identifier
-  location                 = "${var.location}"
-  resource_group_name      = "${var.resource_group_name}"
-  account_kind             = "${var.storage_account_kind}"
-  #account_type             = "${var.storage_account_type}"
-  account_replication_type = "LRS"
-  account_tier = "Standard"
-  count = "${var.vm_count}"
-}
+# resource "azurerm_storage_account" "sto-web-vm" {
+#   name                     = "${var.storage_account_name}"  #It would be better to have a unique identifier
+#   location                 = "${var.location}"
+#   resource_group_name      = "${var.resource_group_name}"
+#   account_kind             = "${var.storage_account_kind}"
+#   #account_type             = "${var.storage_account_type}"
+#   account_replication_type = "LRS"
+#   account_tier = "Standard"
+#   count = "${var.vm_count}"
+# }
 
 resource "azurerm_public_ip" "lbpip" {
   name                         = "${var.prefix}-lbpip"
@@ -141,11 +147,15 @@ resource "azurerm_virtual_machine" "vm" {
   #   version   = "latest"
   # }
 
+  storage_image_reference {
+    id = "/subscriptions/c92d99d5-bf52-4de7-867f-a269bbc19b3d/resourceGroups/image-rg/providers/Microsoft.Compute/images/ImageFromPacker"
+  }
+
   storage_os_disk {
     name          = "${var.vm_name_prefix}-vm${count.index}-os.vhd"
-    image_uri     = "${var.vm_image_uri}"
+    #image_uri     = "${var.vm_image_uri}"
     #vhd_uri       = "https://${element(azurerm_storage_account.sto-web-vm.*.name, count.index)}.blob.core.windows.net/${element(azurerm_storage_account.sto-web-vm.*.name, count.index)}-vhds/${var.vm_name_prefix}-vm${count.index}-os.vhd"
-    vhd_uri       = "https://imagergdisks590.blob.core.windows.net/vm-vhds/${var.vm_name_prefix}-vm${count.index}-os.vhd"
+    #vhd_uri       = "https://imagergdisks590.blob.core.windows.net/vm-vhds/${var.vm_name_prefix}-vm${count.index}-os.vhd"
     os_type       = "windows"
     create_option = "FromImage"
     caching = "ReadWrite"
@@ -154,7 +164,7 @@ resource "azurerm_virtual_machine" "vm" {
   storage_data_disk {
     name            = "${var.vm_name_prefix}-vm${count.index}-dataDisk1.vhd"
     #vhd_uri         = "https://${element(azurerm_storage_account.sto-web-vm.*.name, count.index)}.blob.core.windows.net/${element(azurerm_storage_account.sto-web-vm.*.name, count.index)}-vhds/${var.vm_name_prefix}-vm${count.index}-dataDisk1.vhd"
-    vhd_uri       = "https://imagergdisks590.blob.core.windows.net/vm-vhds/${var.vm_name_prefix}-vm${count.index}-dataDisk1.vhd"
+    #vhd_uri       = "https://imagergdisks590.blob.core.windows.net/vm-vhds/${var.vm_name_prefix}-vm${count.index}-dataDisk1.vhd"
     create_option   = "Empty"
     lun             = 0
     disk_size_gb    = "128"
@@ -167,46 +177,31 @@ resource "azurerm_virtual_machine" "vm" {
   }
 
   os_profile_windows_config {
-
+      provision_vm_agent = true
   }
-
-  # provisioner "file" {
-  #  source     = "${path.module}\\provisioning\\install_puppetagent_windows.ps1"
-  #  destination = "C:\\scripts"
-  #  connection   = {
-  #    host       = "10.0.1.4"
-  #    type       = "winrm"
-  #    user       = "${var.vm_admin_username}"
-  #    password   = "${var.vm_admin_password}"
-  #    https       = true
-  #    insecure    = true
-  #  }
-  # }
-  # provisioner "remote-exec" {
-  #   connection   = {
-  #     type       = "winrm"
-  #     user       = "${var.vm_admin_username}"
-  #     password   = "${var.vm_admin_password}"
-  #     agent       = "false"
-  #   }
-  #   inline = [
-  #     "powershell.exe  -ExecutionPolicy Bypass -File C:\\scripts\\install_puppetagent_windows.ps1 -PuppetEnvironment dev -PuppetAgentCertName dev -PuppetMasterIpAddress dev -PuppetMasterHostName dev -PuppetAgentRole dev"
-  #   ]
-  # }
 }
 
-# resource "null_resource" "app_server_provisioner" {
-#   triggers {
-#     server_id = "${azurerm_virtual_machine.vm.id}"
-#   }
-#   connection   = {
-#     type       = "winrm"
-#     user       = "${var.vm_admin_username}"
-#     password   = "${var.vm_admin_password}"
-#     agent       = "false"
-#   }
-#
-# }
+  resource "azurerm_virtual_machine_extension" "install-puppet" {
+   name                 = "install-puppet"
+   location             = "${var.location}"
+   resource_group_name  = "${var.resource_group_name}"
+   virtual_machine_name = "${element(azurerm_virtual_machine.vm.*.name, count.index)}"
+   publisher            = "Microsoft.Compute"
+   type                 = "CustomScriptExtension"
+   type_handler_version = "1.8"
+   depends_on           = ["azurerm_virtual_machine.vm"]
+   count = "${var.vm_count}"
+
+    settings = <<SETTINGS
+     {
+         "fileUris": ["https://raw.githubusercontent.com/CMaloun/terragrunt/master/extensions/install_puppetagent_windows.ps1"],
+         "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File install_puppetagent_windows.ps1 -PuppetEnvironment '${var.puppet_environment}' -PuppetAgentCertName '${element(azurerm_virtual_machine.vm.*.name, count.index)}.${var.domain_name}' -PuppetMasterIpAddress '${var.puppetmaster_ip_address}' -PuppetMasterHostName '${var.puppetmaster_hostname}' -PuppetAgentRole '${var.server_role}'"
+     }
+ SETTINGS
+ }
+
+
+
 
 # resource "azurerm_virtual_machine_extension" "join-ad-domain" {
 # name = "join-ad-domain"

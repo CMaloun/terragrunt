@@ -52,20 +52,4 @@ if (!($PuppetInstalled)) {
     Exit 1
   }
 
-  # Stop the service that it autostarts
-  #Write-Host "Stopping Puppet service that is running by default..."
-  #Start-Sleep -s 5
-  #Stop-Service -Name puppet
-
-  Write-Host "Puppet successfully installed."
-
-  Write-Host "update host file"
-  ac -Encoding UTF8  "$($env:windir)\system32\Drivers\etc\hosts" "10.0.20.10 puppet puppetmaster"
-  Write-Host "Host file updated"
-
-  Write-Host "set environment variable"
-  [Environment]::SetEnvironmentVariable("FACTER_role", "windowswebserver", "Machine")
-  Write-Host "Environment variable updated"
-
-  Restart-Computer -force
 }

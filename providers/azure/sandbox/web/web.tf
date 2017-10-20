@@ -46,8 +46,12 @@ module "web" {
   vm_admin_password =  "${var.vm_admin_password}"
   vm_admin_username = "${var.vm_admin_username}"
   vm_image_uri = "https://imagergdisks590.blob.core.windows.net/system/Microsoft.Compute/Images/images/packer-osDisk.07ae2c46-ec23-438b-82ec-9a606b2cf61d.vhd"
-  #subnet_id = "${data.terraform_remote_state.network.nsg_subnets[0]}"
   subnet_id = "${module.security_web.subnet_id}"
+  puppet_environment = "test"
+  domain_name = "contoso.com"
+  puppetmaster_ip_address = "10.10.10.10"
+  puppetmaster_hostname = "puppet.rd.talentsoft.com"
+  server_role = "iiswebserver"
 }
 
 module "security_web" {
