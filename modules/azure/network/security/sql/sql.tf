@@ -62,3 +62,5 @@ resource "azurerm_network_security_rule" "deny-other-traffic_rule" {
   resource_group_name         = "${var.resource_group_name}"
   network_security_group_name = "${var.network_security_group_name}"
 }
+
+output "subnet_id" { value = "${azurerm_subnet.subnet.id}" }

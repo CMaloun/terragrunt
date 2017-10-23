@@ -37,7 +37,21 @@
    {
     "type": "powershell",
     "script":"install_puppetagent_windows.ps1"
-  }
+  },
+  {
+      "type": "file",
+      "source": "C:/puppet/code/environments/development/hieradata/",
+      "destination": "C:/Windows/Temp/packer-puppet-masterless/hieradata"
+    },
+	{
+  	"type": "puppet-masterless",
+    "guest_os_type": "windows",
+  	"manifest_file": "C:\\puppet\\code\\environments\\development\\manifests\\site.pp",
+  	"hiera_config_path": "C:\\puppet\\code\\environments\\development\\hiera.yaml",
+  	"module_paths": ["C:\\puppet\\code\\environments\\development\\modules","C:\\puppet\\code\\environments\\development\\site"],
+    "facter" : { "role" : "windowswebserver" },
+    "ignore_exit_codes" : true
+	}
   ,
   {
     "type": "powershell",

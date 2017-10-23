@@ -1,9 +1,0 @@
-{
-  "client_id": "f88662aa-95d2-4cb9-9138-98667150dbc0",
-  "client_secret": "P@ssw0rd!",
-  "tenant_id": "461a774b-c94c-4ea0-b027-311a135d9234",
-  "subscription_id": "c92d99d5-bf52-4de7-867f-a269bbc19b3d",
-  "object_id": "4a4a07e7-f28f-468d-bd31-01d71c04e277",
-  "resource_group": "packer-rg",
-  "storage_account": "tspackerimagessandbox"
-}

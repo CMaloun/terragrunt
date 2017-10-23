@@ -140,12 +140,6 @@ resource "azurerm_virtual_machine" "vm" {
   availability_set_id           = "${azurerm_availability_set.web-as.id}"
   count = "${var.vm_count}"
 
-  # storage_image_reference {
-  #   publisher = "MicrosoftWindowsServer"
-  #   offer     = "WindowsServer"
-  #   sku       = "2012-R2-Datacenter"
-  #   version   = "latest"
-  # }
 
   storage_image_reference {
     id = "/subscriptions/c92d99d5-bf52-4de7-867f-a269bbc19b3d/resourceGroups/image-rg/providers/Microsoft.Compute/images/ImageFromPacker"
@@ -195,7 +189,7 @@ resource "azurerm_virtual_machine" "vm" {
     settings = <<SETTINGS
      {
          "fileUris": ["https://raw.githubusercontent.com/CMaloun/terragrunt/master/extensions/install_puppetagent_windows.ps1"],
-         "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File install_puppetagent_windows.ps1 -PuppetEnvironment '${var.puppet_environment}' -PuppetAgentCertName '${element(azurerm_virtual_machine.vm.*.name, count.index)}.${var.domain_name}' -PuppetMasterIpAddress '${var.puppetmaster_ip_address}' -PuppetMasterHostName '${var.puppetmaster_hostname}' -PuppetAgentRole '${var.server_role}'"
+         "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File install_puppetagent_windows.ps1 -PuppetEnvironment ${var.puppet_environment} -PuppetAgentCertName ${element(azurerm_virtual_machine.vm.*.name, count.index)}.${var.domain_name} -PuppetMasterIpAddress ${var.puppetmaster_ip_address} -PuppetMasterHostName ${var.puppetmaster_hostname} -PuppetAgentRole ${var.server_role}"
      }
  SETTINGS
  }

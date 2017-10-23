@@ -42,7 +42,8 @@ module "sql" {
   vm_admin_password = "${var.vm_admin_password}"
   vm_admin_username = "${var.vm_admin_username}"
   storage_account_name = "${var.storage_account_name}"
-  subnet_id = "${data.terraform_remote_state.network.nsg_subnets[2]}"
+  subnet_id = "${module.security_sql.subnet_id}"
+  #subnet_id = "${data.terraform_remote_state.network.nsg_subnets[2]}"
 }
 
 module "security_sql" {

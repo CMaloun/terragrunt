@@ -44,12 +44,14 @@ if (!($PuppetInstalled)) {
   }
 
   # Install it - msiexec will download from the url
-  $install_args = @("/qn", "/norestart","/i", $MsiUrl, "PUPPET_AGENT_CERTNAME=agent-windows-web.talentsoft.com PUPPET_AGENT_ENVIRONMENT=development")
+  $install_args = @("/qn", "/norestart","/i", $MsiUrl, "PUPPET_AGENT_CERTNAME=agent-windows-web.talentsoft.com")
   Write-Host "Installing Puppet. Running msiexec.exe $install_args"
   $process = Start-Process -FilePath msiexec.exe -ArgumentList $install_args -Wait -PassThru
   if ($process.ExitCode -ne 0) {
     Write-Host "Installer failed."
     Exit 1
   }
+
+  New-Item -ItemType Directory -Force -Path "C:\\Windows\\Temp\\packer-puppet-masterless\\hieradata\\"
 
 }

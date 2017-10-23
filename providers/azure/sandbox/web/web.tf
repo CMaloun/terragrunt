@@ -49,9 +49,9 @@ module "web" {
   subnet_id = "${module.security_web.subnet_id}"
   puppet_environment = "test"
   domain_name = "contoso.com"
-  puppetmaster_ip_address = "10.10.10.10"
+  puppetmaster_ip_address = "10.80.10.10"
   puppetmaster_hostname = "puppet.rd.talentsoft.com"
-  server_role = "iiswebserver"
+  server_role = "windowswebserver"
 }
 
 module "security_web" {
