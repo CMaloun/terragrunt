@@ -29,16 +29,19 @@ resource "azurerm_availability_set" "web-as" {
   managed = true
 }
 
-# resource "azurerm_storage_account" "sto-web-vm" {
-#   name                     = "${var.storage_account_name}"  #It would be better to have a unique identifier
-#   location                 = "${var.location}"
-#   resource_group_name      = "${var.resource_group_name}"
-#   account_kind             = "${var.storage_account_kind}"
-#   #account_type             = "${var.storage_account_type}"
-#   account_replication_type = "LRS"
-#   account_tier = "Standard"
-#   count = "${var.vm_count}"
-# }
+resource "azurerm_image" "imageweb" {
+    name = "BaseImageAzureWeb"
+    location = "${var.location}"
+    resource_group_name = "${var.resource_group_name}"
+
+    os_disk {
+      blob_uri          = "${var.vm_image_uri}"
+      os_type       = "windows"
+      os_state = "Generalized"
+      caching = "ReadWrite"
+   }
+}
+
 
 resource "azurerm_public_ip" "lbpip" {
   name                         = "${var.prefix}-lbpip"
@@ -142,7 +145,8 @@ resource "azurerm_virtual_machine" "vm" {
 
 
   storage_image_reference {
-    id = "/subscriptions/c92d99d5-bf52-4de7-867f-a269bbc19b3d/resourceGroups/image-rg/providers/Microsoft.Compute/images/ImageFromPacker"
+    #id = "/subscriptions/c92d99d5-bf52-4de7-867f-a269bbc19b3d/resourceGroups/image-rg/providers/Microsoft.Compute/images/ImageFromPacker"
+    id = "${azurerm_image.imageweb.id}"
   }
 
   storage_os_disk {
