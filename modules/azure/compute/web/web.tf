@@ -13,15 +13,15 @@ variable "vm_name_prefix" {}
 variable "vm_admin_password" {}
 variable "vm_admin_username" {}
 variable "vm_size" { default = "Standard_DS1_v2" }
-variable "vm_image_uri" {}
 variable "vm_count" {}
 variable "puppet_environment" {}
 variable "domain_name" {}
 variable "puppetmaster_ip_address" {}
 variable "puppetmaster_hostname" {}
 variable "server_role" {}
+variable "vm_image_id" {}
 
-
+#Availability set
 resource "azurerm_availability_set" "web-as" {
   name                = "web-as"
   location            = "${var.location}"
@@ -29,20 +29,9 @@ resource "azurerm_availability_set" "web-as" {
   managed = true
 }
 
-resource "azurerm_image" "imageweb" {
-    name = "BaseImageAzureWeb"
-    location = "${var.location}"
-    resource_group_name = "${var.resource_group_name}"
-
-    os_disk {
-      blob_uri          = "${var.vm_image_uri}"
-      os_type       = "windows"
-      os_state = "Generalized"
-      caching = "ReadWrite"
-   }
-}
-
-
+#####################################################################################################
+#  Load Balancer
+#####################################################################################################
 resource "azurerm_public_ip" "lbpip" {
   name                         = "${var.prefix}-lbpip"
   location                     = "${var.location}"
@@ -91,8 +80,9 @@ resource "azurerm_lb_probe" "lb_probe" {
   request_path        = "/"
 }
 
-# virtual-machines
-#
+#####################################################################################################
+#  Network intefaces
+#####################################################################################################
 resource "azurerm_network_interface" "nic" {
   name                = "nicPrimaryWEB${count.index}"
   location            = "${var.location}"
@@ -133,6 +123,9 @@ resource "azurerm_network_interface" "nic" {
 }
 
 
+#####################################################################################################
+#  Virtual machines
+#####################################################################################################
 
 resource "azurerm_virtual_machine" "vm" {
   name                          = "${var.vm_name_prefix}-vm${count.index}"
@@ -141,19 +134,17 @@ resource "azurerm_virtual_machine" "vm" {
   vm_size                       = "${var.vm_size}"
   network_interface_ids         = ["${element(azurerm_network_interface.nic.*.id, count.index)}"]
   availability_set_id           = "${azurerm_availability_set.web-as.id}"
+  delete_os_disk_on_termination  = true
+  delete_data_disks_on_termination = true
   count = "${var.vm_count}"
 
 
   storage_image_reference {
-    #id = "/subscriptions/c92d99d5-bf52-4de7-867f-a269bbc19b3d/resourceGroups/image-rg/providers/Microsoft.Compute/images/ImageFromPacker"
-    id = "${azurerm_image.imageweb.id}"
+    id = "${var.vm_image_id}"
   }
 
   storage_os_disk {
     name          = "${var.vm_name_prefix}-vm${count.index}-os.vhd"
-    #image_uri     = "${var.vm_image_uri}"
-    #vhd_uri       = "https://${element(azurerm_storage_account.sto-web-vm.*.name, count.index)}.blob.core.windows.net/${element(azurerm_storage_account.sto-web-vm.*.name, count.index)}-vhds/${var.vm_name_prefix}-vm${count.index}-os.vhd"
-    #vhd_uri       = "https://imagergdisks590.blob.core.windows.net/vm-vhds/${var.vm_name_prefix}-vm${count.index}-os.vhd"
     os_type       = "windows"
     create_option = "FromImage"
     caching = "ReadWrite"
@@ -161,8 +152,6 @@ resource "azurerm_virtual_machine" "vm" {
 
   storage_data_disk {
     name            = "${var.vm_name_prefix}-vm${count.index}-dataDisk1.vhd"
-    #vhd_uri         = "https://${element(azurerm_storage_account.sto-web-vm.*.name, count.index)}.blob.core.windows.net/${element(azurerm_storage_account.sto-web-vm.*.name, count.index)}-vhds/${var.vm_name_prefix}-vm${count.index}-dataDisk1.vhd"
-    #vhd_uri       = "https://imagergdisks590.blob.core.windows.net/vm-vhds/${var.vm_name_prefix}-vm${count.index}-dataDisk1.vhd"
     create_option   = "Empty"
     lun             = 0
     disk_size_gb    = "128"
@@ -179,6 +168,12 @@ resource "azurerm_virtual_machine" "vm" {
   }
 }
 
+
+#####################################################################################################
+#  Extensions
+#####################################################################################################
+
+
   resource "azurerm_virtual_machine_extension" "install-puppet" {
    name                 = "install-puppet"
    location             = "${var.location}"
@@ -192,7 +187,7 @@ resource "azurerm_virtual_machine" "vm" {
 
     settings = <<SETTINGS
      {
-         "fileUris": ["https://raw.githubusercontent.com/CMaloun/terragrunt/master/extensions/install_puppetagent_windows.ps1"],
+         "fileUris": ["https://raw.githubusercontent.com/CMaloun/terragrunt/master/extensions/azure/web/install_puppetagent_windows.ps1"],
          "commandToExecute": "powershell.exe -ExecutionPolicy Unrestricted -File install_puppetagent_windows.ps1 -PuppetEnvironment ${var.puppet_environment} -PuppetAgentCertName ${element(azurerm_virtual_machine.vm.*.name, count.index)}.${var.domain_name} -PuppetMasterIpAddress ${var.puppetmaster_ip_address} -PuppetMasterHostName ${var.puppetmaster_hostname} -PuppetAgentRole ${var.server_role}"
      }
  SETTINGS

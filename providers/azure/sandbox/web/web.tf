@@ -34,6 +34,18 @@ data "terraform_remote_state" "network" {
   }
 }
 
+data "terraform_remote_state" "images" {
+  backend = "azure"
+  config {
+    storage_account_name = "terraformstoragesandbox"
+    container_name       = "terraform"
+    key                  = "images/terraform.tfstate"
+    access_key = "hlktSi5s6rjmTnX6lZCfaE6fVHj7Hd8+gF0XDQv+ZIOgMwjkssBgrtzndNNtxELkKjwph/XZMF1poDYRCzDyiQ=="
+    resource_group_name  = "terraformstorage"
+  }
+}
+
+
 module "web" {
   source = "../../../../modules/azure/compute/web"
   resource_group_name = "${var.resource_group_name}"
@@ -45,7 +57,7 @@ module "web" {
   vm_name_prefix = "${var.vm_name_prefix}"
   vm_admin_password =  "${var.vm_admin_password}"
   vm_admin_username = "${var.vm_admin_username}"
-  vm_image_uri = "https://imagergdisks590.blob.core.windows.net/images/pkrosfvl9n704fm.vhd"
+  vm_image_id = "${data.terraform_remote_state.images.image_web_id}"
   subnet_id = "${module.security_web.subnet_id}"
   puppet_environment = "test"
   domain_name = "contoso.com"

@@ -19,7 +19,7 @@ terraform {
   backend "azurerm" {}
 }
 
-module "addsa_azure" {
+module "adds_azure" {
   source                = "../../../../modules/azure/compute/adds"
   resource_group_name   = "${var.resource_group_name}"
   aads_parameters_uri   = "${var.aads_parameters_uri}"
